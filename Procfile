@@ -1,0 +1,1 @@
+web: node_modules/.bin/docco index.coffee.md
