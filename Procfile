@@ -1,1 +1,1 @@
-web: node_modules/.bin/docco index.coffee.md
+web: node_modules/.bin/coffee index.coffee.md
