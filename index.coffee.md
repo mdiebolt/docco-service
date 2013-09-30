@@ -50,8 +50,8 @@ Use Docco to document the code from the passed in url
 
 Clean up temporary files
 
-              #fs.unlink file
-              #fs.unlink "docs/#{tempName}.coffee.html"
+              fs.unlink file
+              fs.unlink "docs/#{tempName}.coffee.html"
 
 Deal with streamed data
 
