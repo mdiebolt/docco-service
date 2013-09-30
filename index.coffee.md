@@ -30,6 +30,8 @@ Remove the file UUID from the response body with the actual name of the file
       regexp = RegExp(tempName, "g")
       str.replace(regexp, fileName)
 
+Use Docco to document the code from the passed in url
+
     compile = (streamOrData, out) ->
       writeBody = (body, tempName) ->
         out.setHeader "Content-Type", "text/html"
@@ -51,6 +53,8 @@ Clean up temporary files
               fs.unlink file
               fs.unlink "docs/#{tempName}.coffee.html"
 
+Deal with streamed data
+
       if typeof streamOrData is "string"
         data = streamOrData
         finish()
@@ -69,11 +73,13 @@ Compile from a url on the web.
         setExtension(url)
         http.get url, (error, resp, body) ->
           compile(body, response)
-      else # TODO present a nicer instructions view
+      else
         response.send """
-          <h1 style='color:red;'>
-            GET /?url=http://a-site.com/my-docco-file.coffee
-          </h1>
+          <div style='width:450px; height:150px; background-color: #dedede; border-radius: 4px; font-family: "Helvetica Neue", Arial, sans-serif; position:absolute; left:0; right:0; top:0; bottom:0; margin:auto; padding: 1em 2em;'>
+            <p>Use the <b>url</b> query string parameter to point this webservice to the source of a Docco compatible documented file.</p>
+            <p>Docco will be run against the source, and the resulting html will be served to the browser.</p>
+            <p>Usage: GET /?url=http://a-site.com/my-docco-file.coffee</p>
+          </div>
         """
 
 Serve up the compiled Docco output
