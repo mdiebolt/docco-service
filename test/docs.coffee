@@ -1,0 +1,3 @@
+# # Call doSomething()
+aMethod = ->
+  doSomething()
