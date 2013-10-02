@@ -13,14 +13,26 @@ Docco your code as a service.
     fileName = null
     baseName = null
 
-Determine is the file is CoffeeScript with embedded Markdown
+Determine is the file is CoffeeScript with embedded Markdown. We need to special case this since Docco compiles that into `<file_name>.coffee.html`
 
     hasMarkdownExtension = (str) ->
       str.indexOf(".md") > 0
 
-Figure out the file extension based on the request URL
+Output path of the file Docco compiles. Replace the `.coffee.html` that Docco adds if we are dealing with a `.coffee.md` file.
 
-    setFileName = (str) ->
+    docsPath = (fileName) ->
+      path = "docs/#{baseName}.coffee.html"
+      path = path.replace(".coffee", "") unless hasMarkdownExtension(fileName)
+      path
+
+Path to the source code that is being Docco'd
+
+    sourcePath = (fileName) ->
+      "docs/#{fileName}"
+
+Set the fileName and baseName based on the request URL
+
+    setFileInfo = (str) ->
       [_..., fileName] = str.split("/")
       [baseName, extensions...] = fileName.split(".")
 
@@ -39,26 +51,25 @@ Use Docco to document the code from the passed in url
 
       fs.writeFileSync "docs/#{fileName}", data
 
-      sourceFilePath = "docs/#{fileName}"
+      sourceFilePath = sourcePath(fileName)
+      compiledDocsPath = docsPath(fileName)
 
-      compiledDocsPath = "docs/#{baseName}.coffee.html"
-      compiledDocsPath.replace(".coffee", "") unless hasMarkdownExtension(compiledDocsPath)
+Run Docco on the copy of our source code that we saved locally.
 
       exec "node_modules/.bin/docco #{sourceFilePath}", ->
         body = fs.readFileSync compiledDocsPath, "utf8"
         writeBody(body)
 
-Clean up temporary files
+Clean up temporary files.
 
         fs.unlinkSync sourceFilePath
         fs.unlinkSync compiledDocsPath
 
-Get from a url or tell people how to use.
-Compile from a url on the web.
+Get from a url or tell people how to use the service.
 
     app.get "/", (request, response) ->
       if url = request.query.url
-        setFileName(url)
+        setFileInfo(url)
         http.get url, (error, resp, body) ->
           compile(body, response)
       else
