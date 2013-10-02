@@ -30,55 +30,39 @@ Remove the file UUID from the response body with the actual name of the file
       regexp = RegExp(tempName, "g")
       str.replace(regexp, fileName)
 
+Deal with streamed data
+
+    processStream = (stream, cb) ->
+      data = ""
+
+      stream.setEncoding "utf8"
+      stream.on "data", (chunk) ->
+        data += chunk
+      stream.on "end", cb(data)
+
 Use Docco to document the code from the passed in url
 
-    compile = (streamOrData, out) ->
+    compile = (data, out) ->
       writeBody = (body, tempName) ->
         content = replaceUuid(body, tempName, fileName)
 
         out.setHeader "Content-Type", "text/html"
         out.setHeader "Content-Length", content.length
-        console.log("$$$$$$$$$$$$$$$ Content Deetz $$$$$$$$$$$$$$$")
-        console.log(content)
-        console.log(content.length)
         out.end content
 
-      writeError = (err) ->
-        out.setHeader "Content-Type", "text/html"
-        out.setHeader "Content-Length", err.length
-        out.end err
+      tempName = uuid.v1()
+      file = tempName + extension
 
-      finish = ->
-        tempName = uuid.v1()
-        file = tempName + extension
+      fs.writeFileSync "#{file}", data
 
-        fs.writeFile "#{file}", data, (err) ->
-          if err
-            writeError(err)
-          else
-            exec "node_modules/.bin/docco #{file}", (err) ->
-              if err
-                writeError(err)
-              else
-                fs.readFile "docs/#{tempName}.coffee.html", "utf8", (err, body) ->
-                  writeBody(body, tempName)
+      exec "node_modules/.bin/docco #{file}", ->
+        body = fs.readFileSync "docs/#{tempName}.coffee.html", "utf8"
+        writeBody(body, tempName)
 
 Clean up temporary files
 
-                fs.unlink file
-                fs.unlink "docs/#{tempName}.coffee.html"
-
-Deal with streamed data
-
-      if typeof streamOrData is "string"
-        data = streamOrData
-        finish()
-      else
-        stream = streamOrData
-        stream.setEncoding "utf8"
-        stream.on "data", (chunk) ->
-          data += chunk
-        stream.on "end", finish
+        fs.unlinkSync file
+        fs.unlinkSync "docs/#{tempName}.coffee.html"
 
 Get from a url or tell people how to use.
 Compile from a url on the web.
