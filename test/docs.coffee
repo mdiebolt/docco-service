@@ -1,3 +1,5 @@
-# # Call doSomething()
+# # docs.coffee
+
+# Call doSomething()
 aMethod = ->
   doSomething()

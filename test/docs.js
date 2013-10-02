@@ -1,4 +1,6 @@
-// # Call doSomething()
+// # docs.js
+
+// Call doSomething()
 aMethod = function() {
   doSomething();
 }
