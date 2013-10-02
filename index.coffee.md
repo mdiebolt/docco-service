@@ -38,22 +38,35 @@ Use Docco to document the code from the passed in url
 
         out.setHeader "Content-Type", "text/html"
         out.setHeader "Content-Length", content.length
+        console.log("$$$$$$$$$$$$$$$ Content Deetz $$$$$$$$$$$$$$$")
+        console.log(content)
+        console.log(content.length)
         out.end content
+
+      writeError = (err) ->
+        out.setHeader "Content-Type", "text/html"
+        out.setHeader "Content-Length", err.length
+        out.end err
 
       finish = ->
         tempName = uuid.v1()
         file = tempName + extension
 
         fs.writeFile "#{file}", data, (err) ->
-          unless err
-            exec "node_modules/.bin/docco #{file}", ->
-              fs.readFile "docs/#{tempName}.coffee.html", "utf8", (err, body) ->
-                writeBody(body, tempName)
+          if err
+            writeError(err)
+          else
+            exec "node_modules/.bin/docco #{file}", (err) ->
+              if err
+                writeError(err)
+              else
+                fs.readFile "docs/#{tempName}.coffee.html", "utf8", (err, body) ->
+                  writeBody(body, tempName)
 
 Clean up temporary files
 
-              fs.unlink file
-              fs.unlink "docs/#{tempName}.coffee.html"
+                fs.unlink file
+                fs.unlink "docs/#{tempName}.coffee.html"
 
 Deal with streamed data
 
