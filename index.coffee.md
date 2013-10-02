@@ -41,7 +41,7 @@ Use Docco to document the code from the passed in url
 
       sourceFilePath = "docs/#{fileName}"
 
-      compiledDocsPath = "docs/#{basename}.coffee.html"
+      compiledDocsPath = "docs/#{baseName}.coffee.html"
       compiledDocsPath.replace(".coffee", "") unless hasMarkdownExtension(compiledDocsPath)
 
       exec "node_modules/.bin/docco #{sourceFilePath}", ->
