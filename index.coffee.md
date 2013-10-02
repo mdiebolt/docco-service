@@ -1,75 +1,64 @@
 Docco your code as a service.
 
-    Docco = require "docco"
-
     fs = require "fs"
     http = require "request"
-    uuid = require "uuid"
     express = require "express"
 
     {exec} = require "child_process"
 
     app = express()
     app.use express.logger()
+    app.use express.static "#{__dirname}/docs"
 
-    extension = null
     fileName = null
+    baseName = null
+
+Determine is the file is CoffeeScript with embedded Markdown
+
+    hasMarkdownExtension = (str) ->
+      str.indexOf(".md") > 0
 
 Figure out the file extension based on the request URL
 
-    setExtension = (str) ->
+    setFileName = (str) ->
       [_..., fileName] = str.split("/")
       [baseName, extensions...] = fileName.split(".")
 
-      fileName = baseName
-      extension = "." + extensions.join(".")
+      fileName = fileName
+      baseName = baseName
 
-Remove the file UUID from the response body with the actual name of the file
-
-    replaceUuid = (str, tempName, fileName) ->
-      regexp = RegExp(tempName, "g")
-      str.replace(regexp, fileName)
-
-Deal with streamed data
-
-    processStream = (stream, cb) ->
-      data = ""
-
-      stream.setEncoding "utf8"
-      stream.on "data", (chunk) ->
-        data += chunk
-      stream.on "end", cb(data)
+      return fileName
 
 Use Docco to document the code from the passed in url
 
     compile = (data, out) ->
-      writeBody = (body, tempName) ->
-        content = replaceUuid(body, tempName, fileName)
-
+      writeBody = (body) ->
         out.setHeader "Content-Type", "text/html"
-        out.setHeader "Content-Length", content.length
-        out.end content
+        out.setHeader "Content-Length", body.length
+        out.end body
 
-      tempName = uuid.v1()
-      file = tempName + extension
+      fs.writeFileSync "docs/#{fileName}", data
 
-      fs.writeFileSync "#{file}", data
+      sourceFilePath = "docs/#{fileName}"
 
-      exec "node_modules/.bin/docco #{file}", ->
-        body = fs.readFileSync "docs/#{tempName}.coffee.html", "utf8"
-        writeBody(body, tempName)
+      compiledDocsPath = "docs/#{basename}.coffee.html"
+      compiledDocsPath.replace(".coffee", "") unless hasMarkdownExtension(compiledDocsPath)
+
+      exec "node_modules/.bin/docco #{sourceFilePath}", ->
+        body = fs.readFileSync compiledDocsPath, "utf8"
+        writeBody(body)
 
 Clean up temporary files
 
-        fs.unlinkSync file
-        fs.unlinkSync "docs/#{tempName}.coffee.html"
+        fs.unlinkSync sourceFilePath
+        fs.unlinkSync compiledDocsPath
 
 Get from a url or tell people how to use.
 Compile from a url on the web.
 
     app.get "/", (request, response) ->
       if url = request.query.url
-        setExtension(url)
+        setFileName(url)
         http.get url, (error, resp, body) ->
           compile(body, response)
       else
@@ -80,10 +69,6 @@ Compile from a url on the web.
             <p>Usage: GET /?url=http://a-site.com/my-docco-file.coffee</p>
           </div>
         """
-
-Serve up the compiled Docco output
-
-    app.use express.static "#{__dirname}/docs"
 
 Start up the server
 
