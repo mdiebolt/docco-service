@@ -34,9 +34,11 @@ Use Docco to document the code from the passed in url
 
     compile = (streamOrData, out) ->
       writeBody = (body, tempName) ->
+        content = replaceUuid(body, tempName, fileName)
+
         out.setHeader "Content-Type", "text/html"
-        out.setHeader "Content-Length", body.length
-        out.end replaceUuid(body, tempName, fileName)
+        out.setHeader "Content-Length", content.length
+        out.end content
 
       finish = ->
         tempName = uuid.v1()
