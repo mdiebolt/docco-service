@@ -1,7 +1,9 @@
 Docco your code as a service.
 
     fs = require "fs"
+    rr = require "rimraf"
     http = require "request"
+    uuid = require "uuid"
     express = require "express"
 
     {exec} = require "child_process"
@@ -18,23 +20,28 @@ Determine is the file is CoffeeScript with embedded Markdown. We need to special
     hasMarkdownExtension = (str) ->
       str.indexOf(".md") > 0
 
+Path to the source code that is being Docco'd
+
+    sourcePath = (fileName, uuid) ->
+      "docs/#{uuid}/#{fileName}"
+
+Prevent collisions by outputting docs into a directory named after our uuid.
+
+    outputPath = (uuid) ->
+      "docs/#{uuid}"
+
 Output path of the file Docco compiles. Replace the `.coffee.html` that Docco adds if we are dealing with a `.coffee.md` file.
 
-    docsPath = (fileName) ->
-      path = "docs/#{baseName}.coffee.html"
+    compiledFileName = (fileName, uuid) ->
+      path = "docs/#{uuid}/#{baseName}.coffee.html"
       path = path.replace(".coffee", "") unless hasMarkdownExtension(fileName)
       path
 
-Path to the source code that is being Docco'd
-
-    sourcePath = (fileName) ->
-      "docs/#{fileName}"
-
-Set the fileName and baseName based on the request URL
+Parse and set `fileName` and `baseName` based on the request URL.
 
     setFileInfo = (str) ->
-      [_..., fileName] = str.split("/")
-      [baseName, extensions...] = fileName.split(".")
+      [_..., fileName] = str.split "/"
+      [baseName, extensions...] = fileName.split "."
 
       fileName = fileName
       baseName = baseName
@@ -49,21 +56,25 @@ Use Docco to document the code from the passed in url
         out.setHeader "Content-Length", body.length
         out.end body
 
-      fs.writeFileSync "docs/#{fileName}", data
+      id = uuid.v1()
 
-      sourceFilePath = sourcePath(fileName)
-      compiledDocsPath = docsPath(fileName)
+      sourceFilePath = sourcePath(fileName, id)
+      output = outputPath(id)
+      compiledFile = compiledFileName(fileName, id)
+
+      fs.mkdirSync output
+      fs.writeFileSync sourceFilePath, data
 
 Run Docco on the copy of our source code that we saved locally.
 
-      exec "node_modules/.bin/docco #{sourceFilePath}", ->
-        body = fs.readFileSync compiledDocsPath, "utf8"
+      exec "node_modules/.bin/docco #{sourceFilePath} -o #{output}", ->
+        body = fs.readFileSync compiledFile, "utf8"
         writeBody(body)
 
 Clean up temporary files.
 
         fs.unlinkSync sourceFilePath
-        fs.unlinkSync compiledDocsPath
+        rr.sync "docs/#{id}"
 
 Get from a url or tell people how to use the service.
 
@@ -81,7 +92,7 @@ Get from a url or tell people how to use the service.
           </div>
         """
 
-Start up the server
+Start up the server.
 
     port = process.env.PORT || 5000
     app.listen port, ->
